@@ -1,0 +1,7 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/tape2497/telecommande-decodeur.teodul.fr/
+    - /bin/mkdir -p $DEPLOYPATH
+    - /bin/cp -R html/* $DEPLOYPATH
+    - /bin/cp html/.htaccess $DEPLOYPATH
