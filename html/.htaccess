@@ -1,0 +1,19 @@
+# Force les navigateurs et les caches intermédiaires (réseaux mobiles compris)
+# à revalider les fichiers de l'application avant de réutiliser une copie.
+# L'application n'a pas d'étape de build ni de noms de fichiers versionnés :
+# chaque déploiement écrase les mêmes URL (le cache utilise l'URL comme clé).
+#
+# "no-cache" ne veut pas dire "jamais de cache" : le navigateur demande
+# d'abord au serveur si le fichier a changé (réponse 304 légère si non).
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|htm|js|css|json)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>
+
+# La page s'appelle telecommande.html (et non index.html) :
+# on l'affiche directement à la racine du site.
+DirectoryIndex telecommande.html
+
+# Pas de liste de fichiers si le dossier n'a pas d'index
+Options -Indexes
