@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Télécommande Orange TV</title>
+<style>
+  :root { --bg:#111; --key:#262626; --key2:#333; --txt:#f2f2f2; --accent:#ff7900; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:system-ui,sans-serif; display:flex; justify-content:center; }
+  .remote { width:100%; max-width:380px; padding:14px 16px 28px; }
+  .top { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .ip { font-size:12px; color:#999; background:none; border:1px solid #333; border-radius:8px; padding:6px 10px; color:#bbb; }
+  button.k { background:var(--key); color:var(--txt); border:0; border-radius:14px; font-size:18px; height:56px; width:100%; font-weight:600; touch-action:manipulation; }
+  button.k:active, button.k.on { background:var(--accent); color:#000; transform:scale(.96); }
+  button.power { background:#7a1f1f; height:48px; width:64px; }
+  .row { display:grid; gap:10px; margin-bottom:10px; }
+  .r3 { grid-template-columns:repeat(3,1fr); }
+  .r2 { grid-template-columns:repeat(2,1fr); }
+  .dpad { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:14px 0; }
+  .dpad .k { height:64px; background:var(--key2); }
+  .dpad .ok { background:var(--accent); color:#000; border-radius:50%; }
+  .sp { visibility:hidden; }
+  .status { text-align:center; font-size:12px; color:#777; min-height:16px; margin-top:6px; }
+  .small { font-size:14px; }
+</style>
+</head>
+<body>
+<div class="remote">
+  <div class="top">
+    <button class="ip" id="ipBtn">IP : …</button>
+    <button class="k power" data-key="116">⏻</button>
+  </div>
+
+  <div class="row r3">
+    <button class="k small" data-key="139">Menu</button>
+    <button class="k small" data-key="466">Guide</button>
+    <button class="k small" data-key="393">VOD</button>
+  </div>
+
+  <div class="dpad">
+    <span class="sp"></span>
+    <button class="k rep" data-key="103">▲</button>
+    <span class="sp"></span>
+    <button class="k rep" data-key="105">◀</button>
+    <button class="k ok" data-key="352">OK</button>
+    <button class="k rep" data-key="106">▶</button>
+    <button class="k small" data-key="158">Retour</button>
+    <button class="k rep" data-key="108">▼</button>
+    <span class="sp"></span>
+  </div>
+
+  <div class="row r3">
+    <button class="k rep" data-key="114">Vol −</button>
+    <button class="k" data-key="113">Muet</button>
+    <button class="k rep" data-key="115">Vol +</button>
+  </div>
+  <div class="row r2">
+    <button class="k" data-key="403">Chaîne −</button>
+    <button class="k" data-key="402">Chaîne +</button>
+  </div>
+
+  <div class="row r3">
+    <button class="k" data-key="168">⏪</button>
+    <button class="k" data-key="164">⏯</button>
+    <button class="k" data-key="159">⏩</button>
+  </div>
+
+  <div class="row r3">
+    <button class="k" data-key="513">1</button>
+    <button class="k" data-key="514">2</button>
+    <button class="k" data-key="515">3</button>
+    <button class="k" data-key="516">4</button>
+    <button class="k" data-key="517">5</button>
+    <button class="k" data-key="518">6</button>
+    <button class="k" data-key="519">7</button>
+    <button class="k" data-key="520">8</button>
+    <button class="k" data-key="521">9</button>
+    <span class="sp"></span>
+    <button class="k" data-key="512">0</button>
+    <span class="sp"></span>
+  </div>
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+  var DEFAULT_IP = "192.168.1.11";
+  var PORT = 8080;
+  var ip = DEFAULT_IP;
+  try { ip = localStorage.getItem("tv_ip") || DEFAULT_IP; } catch (e) {}
+
+  var ipBtn = document.getElementById("ipBtn");
+  var statusEl = document.getElementById("status");
+
+  function showIp() { ipBtn.textContent = "IP : " + ip; }
+  showIp();
+
+  ipBtn.addEventListener("click", function () {
+    var v = prompt("Adresse IP du décodeur :", ip);
+    if (v && v.trim()) {
+      ip = v.trim();
+      try { localStorage.setItem("tv_ip", ip); } catch (e) {}
+      showIp();
+    }
+  });
+
+  // Envoi d'une touche : simple requête GET, sans attendre de réponse
+  function sendKey(key) {
+    var url = "http://" + ip + ":" + PORT + "/remoteControl/cmd?operation=01&key=" + key + "&mode=0";
+    // Variante pour téléphone : requête "image" (pas de fetch), sans attendre de réponse
+    new Image().src = url;
+    if (navigator.vibrate) navigator.vibrate(15);
+    statusEl.textContent = "Touche " + key + " envoyée";
+  }
+
+  var buttons = document.querySelectorAll("button[data-key]");
+  for (var i = 0; i < buttons.length; i++) {
+    (function (btn) {
+      var key = btn.getAttribute("data-key");
+      var repeat = btn.classList.contains("rep");
+      var timer = null, interval = null;
+
+      function stop() {
+        clearTimeout(timer); clearInterval(interval);
+        timer = null; interval = null;
+        btn.classList.remove("on");
+      }
+      btn.addEventListener("pointerdown", function (ev) {
+        ev.preventDefault();
+        btn.classList.add("on");
+        sendKey(key);
+        if (repeat) {
+          timer = setTimeout(function () {
+            interval = setInterval(function () { sendKey(key); }, 220);
+          }, 450);
+        }
+      });
+      btn.addEventListener("pointerup", stop);
+      btn.addEventListener("pointerleave", stop);
+      btn.addEventListener("pointercancel", stop);
+      btn.addEventListener("contextmenu", function (ev) { ev.preventDefault(); });
+    })(buttons[i]);
+  }
+</script>
+</body>
+</html>
